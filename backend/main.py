@@ -1,6 +1,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.routes.generation import router as generation_router
 
 app = FastAPI(
@@ -17,6 +18,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+
 @app.get("/")
 def home():
     return {
@@ -24,9 +26,14 @@ def home():
         "status": "Backend Running"
     }
 
+
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "project": "PolyGen"
+    }
+
 
 app.include_router(
     generation_router,
