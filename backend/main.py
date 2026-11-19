@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.generation import router as generation_router
 
+from app.services.system_service import get_system_status
+
 app = FastAPI(
     title="PolyGen API",
     description="Generative Text-to-3D Asset Pipeline",
@@ -33,6 +35,10 @@ def health():
         "status": "healthy",
         "project": "PolyGen"
     }
+
+@app.get("/api/system/status", tags=["System"])
+def system_status():
+    return get_system_status()
 
 
 app.include_router(
