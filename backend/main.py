@@ -6,6 +6,14 @@ from app.routes.generation import router as generation_router
 
 from app.services.system_service import get_system_status
 
+
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+
+GENERATED_DIR = Path(__file__).resolve().parent / "generated_models"
+GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+
+
 app = FastAPI(
     title="PolyGen API",
     description="Generative Text-to-3D Asset Pipeline",
@@ -18,6 +26,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
+)
+app.mount(
+    "/models",
+    StaticFiles(directory=GENERATED_DIR),
+    name="models"
 )
 
 
