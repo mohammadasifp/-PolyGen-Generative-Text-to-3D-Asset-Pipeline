@@ -34,7 +34,18 @@ def get_headers():
 
 
 async def create_generation_task(prompt: str):
+
+    if not API_KEY:
+        raise RuntimeError(
+            "TRIPO_API_KEY is missing. Check backend/.env"
+        )
+
     url = f"{BASE_URL}/generation/text-to-model"
+
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
 
     payload = {
         "prompt": prompt,
@@ -43,31 +54,54 @@ async def create_generation_task(prompt: str):
         "pbr": True
     }
 
-    async with httpx.AsyncClient(timeout=60) as client:
-        response = await client.post(
-            url,
-            headers=get_headers(),
-            json=payload
-        )
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
 
-        response.raise_for_status()
-        result = response.json()
+            response = await client.post(
+                url,
+                headers=headers,
+                json=payload
+            )
 
-    if result.get("code") != 0:
+            print("Tripo HTTP status:", response.status_code)
+
+            response.raise_for_status()
+
+            result = response.json()
+
+            print("Tripo response:", result)
+
+            if result.get("code") != 0:
+                raise RuntimeError(
+                    f"Tripo API error: {result}"
+                )
+
+            task_id = result.get("data", {}).get("task_id")
+
+            if not task_id:
+                raise RuntimeError(
+                    f"Tripo did not return task_id: {result}"
+                )
+
+            return {
+                "task_id": task_id,
+                "status": "queued",
+                "prompt": prompt
+            }
+
+    except httpx.HTTPStatusError as error:
+        status_code = error.response.status_code
+        response_body = error.response.text[:2000]
+
         raise RuntimeError(
-            result.get("message", "Tripo generation request failed")
-        )
+            f"Tripo HTTP {status_code}: {response_body}"
+        ) from error
 
-    task_id = result.get("data", {}).get("task_id")
+    except httpx.RequestError as error:
+        raise RuntimeError(
+            f"Tripo connection error: {type(error).__name__}: {error}"
+        ) from error
 
-    if not task_id:
-        raise RuntimeError("Tripo did not return a task ID")
-
-    return {
-        "task_id": task_id,
-        "status": "queued",
-        "prompt": prompt
-    }
 
 
 async def get_generation_status(task_id: str):
