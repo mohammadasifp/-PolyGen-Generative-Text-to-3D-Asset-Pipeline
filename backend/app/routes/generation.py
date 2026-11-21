@@ -104,8 +104,10 @@ async def check_generation(task_id: str):
             detail=str(error)
         )
 
-    except Exception:
+    except RuntimeError as error:
+        print("PolyGen generation error:", str(error))
+
         raise HTTPException(
             status_code=502,
-            detail="Unable to retrieve generation result"
+            detail=str(error)
         )
