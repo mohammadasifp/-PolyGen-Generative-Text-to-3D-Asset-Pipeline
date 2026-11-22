@@ -1,4 +1,6 @@
 
+from copy import error
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from fastapi import HTTPException
@@ -22,28 +24,28 @@ class GenerationRequest(BaseModel):
 async def generate_model(request: GenerationRequest):
 
     try:
-        result = await create_generation_task(request.prompt)
+    task_id = create_generation_task(request.prompt)
 
-        return {
-            "success": True,
-            "status": "queued",
-            "message": "3D generation task created",
-            "prompt": request.prompt,
-            "task_id": result["task_id"]
-        }
+    return {
+        "task_id": task_id,
+        "status": "queued",
+        "message": "3D generation task created successfully"
+    }
 
     except RuntimeError as error:
-        raise HTTPException(
-            status_code=503,
-            detail=str(error)
+        message = str(error)
+
+        if "INSUFFICIENT_CREDITS" in message:
+            raise HTTPException(
+                status_code=402,
+                detail="Tripo credits are insufficient. "
+                   "Please use Demo Mode or add provider credits."
         )
 
-    except Exception:
-        raise HTTPException(
-            status_code=502,
-            detail="Unable to connect to the Text-to-3D provider"
-        )
-
+    raise HTTPException(
+        status_code=502,
+        detail="The 3D generation provider returned an error."
+    )
 
 @router.get("/generate/{task_id}")
 async def check_generation(task_id: str):
