@@ -33,6 +33,7 @@ def get_headers():
     }
 
 
+
 async def create_generation_task(prompt: str):
 
     if not API_KEY:
@@ -42,10 +43,7 @@ async def create_generation_task(prompt: str):
 
     url = f"{BASE_URL}/generation/text-to-model"
 
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
+    headers = get_headers()
 
     payload = {
         "prompt": prompt,
@@ -65,23 +63,41 @@ async def create_generation_task(prompt: str):
 
             print("Tripo HTTP status:", response.status_code)
 
-            response.raise_for_status()
+            try:
+                result = response.json()
+            except ValueError:
+                raise RuntimeError(
+                    f"Invalid Tripo response: HTTP {response.status_code}"
+                )
 
-            result = response.json()
+            # Handle insufficient credits
+            if result.get("code") == 2010:
+                raise RuntimeError(
+                    "INSUFFICIENT_CREDITS: "
+                    "Your Tripo account does not have enough credits."
+                )
 
-            print("Tripo response:", result)
+            # Handle other HTTP errors
+            if response.is_error:
+                raise RuntimeError(
+                    f"TRIPO_ERROR: HTTP {response.status_code}: "
+                    f"{result.get('message', 'Unknown provider error')}"
+                )
 
+            # Handle other Tripo API errors
             if result.get("code") != 0:
                 raise RuntimeError(
-                    f"Tripo API error: {result}"
+                    f"TRIPO_ERROR: {result.get('message', 'Unknown Tripo error')}"
                 )
 
             task_id = result.get("data", {}).get("task_id")
 
             if not task_id:
                 raise RuntimeError(
-                    f"Tripo did not return task_id: {result}"
+                    "Tripo did not return a task_id"
                 )
+
+            print("Tripo task created:", task_id)
 
             return {
                 "task_id": task_id,
@@ -89,17 +105,10 @@ async def create_generation_task(prompt: str):
                 "prompt": prompt
             }
 
-    except httpx.HTTPStatusError as error:
-        status_code = error.response.status_code
-        response_body = error.response.text[:2000]
-
-        raise RuntimeError(
-            f"Tripo HTTP {status_code}: {response_body}"
-        ) from error
-
     except httpx.RequestError as error:
         raise RuntimeError(
-            f"Tripo connection error: {type(error).__name__}: {error}"
+            f"Tripo connection error: "
+            f"{type(error).__name__}: {error}"
         ) from error
 
 
