@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-
+from fastapi import HTTPException
 from app.services.tripo_service import (
     create_generation_task,
     get_generation_status,
