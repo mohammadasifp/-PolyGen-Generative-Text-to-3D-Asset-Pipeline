@@ -41,8 +41,7 @@ async def generate_model(request: GenerationRequest):
                 detail="Tripo credits are insufficient. "
                    "Please use Demo Mode or add provider credits."
         )
-adagdakjhduefenskfhesflwmljvmvlsjorgjvslrkngl
-snvrlnsdighjlskndvsduhgslkdvnsldvjnslkv 
+
     raise HTTPException(
         status_code=502,
         detail="The 3D generation provider returned an error."
